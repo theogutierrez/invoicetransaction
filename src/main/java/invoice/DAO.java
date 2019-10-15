@@ -77,7 +77,8 @@ public class DAO {
 	 * @throws java.lang.Exception si la transaction a échoué
 	 */
 	public void createInvoice(CustomerEntity customer, int[] productIDs, int[] quantities) throws Exception {
-            sql = "INSERT INTO Item VALUES()";
+            sqlInvoice = "INSERT INTO Invoice VALUES(?, ?)";
+            sqlItem = "INSERT INTO Item VALUES(?, ?, ?, ?)";
 	}
 
 	/**
