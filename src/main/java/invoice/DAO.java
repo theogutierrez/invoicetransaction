@@ -77,8 +77,46 @@ public class DAO {
 	 * @throws java.lang.Exception si la transaction a échoué
 	 */
 	public void createInvoice(CustomerEntity customer, int[] productIDs, int[] quantities) throws Exception {
-            sqlInvoice = "INSERT INTO Invoice VALUES(?, ?)";
-            sqlItem = "INSERT INTO Item VALUES(?, ?, ?, ?)";
+            String sqlInvoice = "INSERT INTO Invoice (CustomerID) VALUES(?)";
+            String sqlInvoice2 = "UPDATE Invoice SET Total = Total + ? WHERE CustomerID = ?";
+            String sqlItem = "INSERT INTO Item (InvoiceID, ProductID, Quantity, Cost) VALUES(?, ?, ?, ?)";
+            String sqlProduct = "SELECT Price FROM Product WHERE ID = ?";
+            int price = 0;
+            int total = 0;
+            try (Connection connection = myDataSource.getConnection();
+            // On prépare la requête en précisant qu'on veut récupérer les clés auto-générées
+            PreparedStatement statement = connection.prepareStatement( 
+                                            sqlInvoice, Statement.RETURN_GENERATED_KEYS)) {
+                statement.setInt(1, customer.getCustomerId());
+                
+                int numberUpdated = statement.executeUpdate();     
+
+                ResultSet clef = statement.getGeneratedKeys(); 
+                clef.next();
+                for(int i =0; i < productIDs.length; i++) {
+                    PreparedStatement statementP = connection.prepareStatement( 
+                                            sqlProduct);
+                    statementP.setInt(1, productIDs[i]);
+                    try (ResultSet resultSet = statementP.executeQuery()) {
+                        resultSet.next();
+                        price = resultSet.getInt("Price");
+
+                        PreparedStatement statementI = connection.prepareStatement( 
+                            sqlItem);
+                        statementI.setInt(1,clef.getInt(1));
+                        statementI.setInt(2,productIDs[i]);
+                        statementI.setInt(3,quantities[i]);
+                        statementI.setInt(4, price * quantities[i]);
+                        statementI.executeUpdate();
+                        total += quantities[i] * price;
+                    }
+                PreparedStatement statement2 = connection.prepareStatement( 
+                                    sqlInvoice2);
+                statement2.setInt(1,total);
+                statement2.setInt(2,clef.getInt(1));
+                statement2.executeUpdate();
+                }
+            }
 	}
 
 	/**
